@@ -1,0 +1,23 @@
+# secrets — never commit the API key
+web/config.js
+**/assets/www/config.js
+
+# generated web bundle (rebuild with web/build.mjs)
+android/app/src/main/assets/www/app.bundle.js
+android/app/src/main/assets/www/vendor/
+android/app/src/main/assets/www/fonts/
+android/app/src/main/assets/www/flags/
+android/app/src/main/assets/www/fonts.css
+android/app/src/main/assets/www/app.css
+android/app/src/main/assets/www/index.html
+android/app/src/main/assets/www/config.example.js
+
+# android build
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+**/.DS_Store
+
+# node
+web/node_modules/
