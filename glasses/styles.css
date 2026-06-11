@@ -6,12 +6,13 @@
   --text-primary: #ffffff;
   --text-secondary: #a0a0b0;
   --text-muted: #606070;
-  --accent-primary: #2ee66d;   /* pitch green */
-  --accent-secondary: #00ff88;
-  --accent-warm: #ffcc33;       /* trophy gold */
-  --danger: #ff4466;
-  --focus-ring: #2ee66d;
-  --focus-glow: rgba(46, 230, 109, 0.45);
+  --accent-primary: #1f6bff;    /* WC26 blue */
+  --accent-secondary: #16a45d;  /* green */
+  --accent-warm: #f2b705;       /* trophy gold */
+  --accent-magenta: #e3097e;    /* WC26 magenta */
+  --danger: #e11d2a;
+  --focus-ring: #1f6bff;
+  --focus-glow: rgba(31, 107, 255, 0.5);
   --success: #00ff88;
   --warning: #ffaa00;
   --info: #00b4d8;
@@ -23,7 +24,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Barlow', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   width: 600px;
@@ -374,11 +375,32 @@ body {
 
 /* ==================== World Cup 2026 — custom components ==================== */
 
-.header h1 {
-  background: linear-gradient(90deg, var(--accent-primary), var(--accent-warm));
+/* Headlines use Barlow Condensed, matching the portal */
+.header h1, .list-detail-title, #match-detail-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Brand lockup (portal style) */
+.brand { display: flex; align-items: baseline; gap: 8px; flex: 1; }
+.brand-yr {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-magenta));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+.brand-nm {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
 }
 
 /* Match list item */
@@ -442,3 +464,93 @@ body {
   padding: 14px 16px;
 }
 .detail-row .list-item-title { font-size: 17px; margin-top: 2px; }
+
+/* Section label inside lists (Browse) */
+.section-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 8px 4px 2px;
+}
+
+/* Star markers */
+.star-inline { color: var(--accent-warm); font-size: 13px; margin-left: 4px; }
+.star-toggle { font-size: 24px; color: var(--accent-warm); flex-shrink: 0; width: 30px; text-align: center; }
+.team-item.selected { background: var(--bg-card); border-color: rgba(242,183,5,0.35); }
+.team-item.selected .list-item-title { font-weight: 700; }
+
+/* Watch pip on match rows */
+.pip-watch { font-size: 16px; flex-shrink: 0; margin-left: 2px; }
+
+/* Empty states */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 48px 32px; text-align: center; flex: 1; min-height: 320px;
+}
+.empty-icon { font-size: 52px; }
+.empty-msg { font-size: 16px; line-height: 1.5; color: var(--text-secondary); max-width: 420px; }
+.empty-msg b { color: var(--accent-primary); font-weight: 700; }
+
+/* "In your calendar" flag on match detail */
+.calendar-flag {
+  background: rgba(31,107,255,0.16);
+  color: var(--accent-primary);
+  border: 1px solid rgba(31,107,255,0.4);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Action buttons (match detail) */
+.action-row { display: flex; gap: 10px; }
+.action-btn {
+  flex: 1;
+  padding: 14px 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: 'Barlow', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.action-btn.wide { width: 100%; flex: none; }
+.action-btn.primary { background: var(--accent-primary); color: #fff; }
+.action-btn.on { background: rgba(31,107,255,0.18); color: var(--accent-primary); border-color: rgba(31,107,255,0.4); }
+
+/* --- Match list item --- */
+.match-item { text-align: left; align-items: center; }
+.match-when {
+  flex-shrink: 0; width: 64px; text-align: center;
+  border-right: 1px solid var(--bg-tertiary); padding-right: 12px;
+}
+.match-date { font-size: 14px; font-weight: 700; color: var(--accent-primary); }
+.match-time { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.match-teams {
+  font-size: 15px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.match-teams .vs { color: var(--text-muted); font-weight: 400; margin: 0 2px; }
+.chevron { color: var(--text-muted); font-size: 22px; flex-shrink: 0; }
+
+/* --- Match detail — VS card --- */
+.vs-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: linear-gradient(135deg, var(--bg-card), var(--bg-tertiary));
+}
+.vs-team { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.vs-flag { font-size: 40px; }
+.vs-team span { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.vs-mid { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 800; color: var(--accent-warm); flex-shrink: 0; }
+.detail-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+.detail-row .list-item-title { font-size: 17px; margin-top: 2px; }
+
+/* Tabs sized for 4 across */
+.tab-item { font-size: 13px; padding: 9px 6px; }
