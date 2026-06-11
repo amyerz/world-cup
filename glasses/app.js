@@ -32,7 +32,7 @@
     activeTab: 'calendar',
     matches: [],
     teams: [],
-    data: { favorites: [], watch: [] },
+    data: { favorites: [], saved: [] },
   };
 
   var screens = {};
@@ -50,7 +50,9 @@
       if (saved) {
         var d = JSON.parse(saved);
         if (Array.isArray(d.favorites)) state.data.favorites = d.favorites;
-        if (Array.isArray(d.watch)) state.data.watch = d.watch;
+        // `saved` = matches manually added to the calendar (migrates old `watch`)
+        if (Array.isArray(d.saved)) state.data.saved = d.saved;
+        else if (Array.isArray(d.watch)) state.data.saved = d.watch;
       }
     } catch (e) { console.error('[Storage] load', e); }
   }
@@ -65,12 +67,14 @@
     if (i === -1) state.data.favorites.push(team); else state.data.favorites.splice(i, 1);
     saveData();
   }
-  function isWatched(id) { return state.data.watch.indexOf(id) !== -1; }
-  function toggleWatch(id) {
-    var i = state.data.watch.indexOf(id);
-    if (i === -1) state.data.watch.push(id); else state.data.watch.splice(i, 1);
+  function isSaved(id) { return state.data.saved.indexOf(id) !== -1; }
+  function toggleSaved(id) {
+    var i = state.data.saved.indexOf(id);
+    if (i === -1) state.data.saved.push(id); else state.data.saved.splice(i, 1);
     saveData();
   }
+  // A match is in the calendar if it features a favorite team OR was added by tap.
+  function inCalendar(m) { return isFav(m.team1) || isFav(m.team2) || isSaved(m._id); }
 
   // ==================== NAVIGATION ====================
   function navigateTo(screenId, options) {
@@ -138,15 +142,9 @@
     return d.getFullYear() + '-' + mm + '-' + dd;
   }
 
-  // Matches that include at least one favorite team (group stage, by exact name).
+  // Calendar = favorite-team matches + any match the user added by tapping.
   function calendarMatches() {
-    if (!state.data.favorites.length) return [];
-    return state.matches.filter(function(m) {
-      return isFav(m.team1) || isFav(m.team2);
-    });
-  }
-  function watchMatches() {
-    return state.matches.filter(function(m) { return isWatched(m._id); });
+    return state.matches.filter(inCalendar);
   }
   function groups() {
     var seen = {}, out = [];
@@ -178,7 +176,11 @@
   function matchItemHTML(m) {
     var badge = String(m.group || '').indexOf('Group') === 0
       ? m.group.replace('Group ', 'Grp ') : (m.round || '');
-    var watchPip = isWatched(m._id) ? '<span class="pip-watch">👁</span>' : '';
+    var added = inCalendar(m);
+    var byFav = isFav(m.team1) || isFav(m.team2);
+    // Star = in calendar. Locked (no toggle hint) when it's there via a favorite team.
+    var star = '<span class="cal-star' + (added ? ' on' : '') + (byFav ? ' locked' : '') + '">' +
+               (added ? '★' : '☆') + '</span>';
     return '' +
       '<button class="list-item match-item focusable" data-action="match" data-id="' + m._id + '">' +
         '<div class="match-when">' +
@@ -189,7 +191,7 @@
           '<div class="match-teams">' + teamLabel(m.team1) + ' <span class="vs">v</span> ' + teamLabel(m.team2) + '</div>' +
           '<div class="list-item-meta">' + (m.ground || '') + '</div>' +
         '</div>' +
-        '<span class="list-item-badge badge-info">' + badge + '</span>' + watchPip +
+        '<span class="list-item-badge badge-info">' + badge + '</span>' + star +
       '</button>';
   }
 
@@ -218,20 +220,12 @@
 
     if (state.activeTab === 'calendar') {
       var cm = calendarMatches();
-      setStatus(state.data.favorites.length ? cm.length + ' matches' : '');
-      if (!state.data.favorites.length) {
-        html = emptyState('⭐', 'Pick your favorite teams to auto-build your match calendar. Open the <b>Teams</b> tab to start.');
-      } else if (!cm.length) {
-        html = emptyState('📅', 'No scheduled matches yet for your teams.');
+      setStatus(cm.length ? cm.length + ' matches' : '');
+      if (!cm.length) {
+        html = emptyState('⭐', 'Pick favorite teams in <b>Teams</b> to auto-build your calendar, or tap any match in <b>Groups</b> to add it.');
       } else {
         html = cm.map(matchItemHTML).join('');
       }
-    } else if (state.activeTab === 'watch') {
-      var wm = watchMatches();
-      setStatus(wm.length + ' watching');
-      html = wm.length
-        ? wm.map(matchItemHTML).join('')
-        : emptyState('👁', 'Add key matches between other teams from <b>Browse</b> to track how your group advances.');
     } else if (state.activeTab === 'browse') {
       setStatus('All ' + state.matches.length + ' matches');
       html =
@@ -262,68 +256,19 @@
     c.innerHTML = html;
   }
 
-  // ==================== RENDER: detail ====================
+  // ==================== RENDER: list detail (group / round) ====================
+  // Holds the current group/round list so we can re-render in place after a tap.
+  var detailCtx = { title: '', matches: [] };
+
   function renderListDetail(title, matches) {
+    detailCtx = { title: title, matches: matches };
     document.getElementById('list-detail-title').textContent = title;
     document.getElementById('detail-list').innerHTML = matches.length
       ? matches.map(matchItemHTML).join('')
       : emptyState('📭', 'No matches.');
   }
 
-  function renderMatchDetail(m) {
-    document.getElementById('match-detail-title').textContent =
-      String(m.group || '').indexOf('Group') === 0 ? m.group : (m.round || 'Match');
-    var inCalendar = isFav(m.team1) || isFav(m.team2);
-    var stage = (m.round || '') + (m.num ? ' · Match ' + m.num : '');
-    var realTeams = FLAGS[m.team1] && FLAGS[m.team2];
-
-    var body = document.getElementById('match-detail-body');
-    var html = '' +
-      '<div class="card vs-card">' +
-        teamBlock(m.team1) +
-        '<div class="vs-mid">VS</div>' +
-        teamBlock(m.team2) +
-      '</div>';
-
-    if (inCalendar) {
-      html += '<div class="calendar-flag">📅 In your calendar</div>';
-    }
-
-    html +=
-      detailRow('📅', 'Date', formatDate(m.date) + ', 2026') +
-      detailRow('🕐', 'Kickoff', m.time || 'TBD') +
-      detailRow('📍', 'Venue', m.ground || 'TBD') +
-      detailRow('🏟️', 'Stage', stage);
-
-    // Actions
-    html += '<div class="action-row">';
-    if (realTeams) {
-      html += '<button class="action-btn focusable" data-action="fav-team1" data-team="' + encodeURIComponent(m.team1) + '">' +
-              (isFav(m.team1) ? '★ ' : '☆ ') + m.team1 + '</button>';
-      html += '<button class="action-btn focusable" data-action="fav-team2" data-team="' + encodeURIComponent(m.team2) + '">' +
-              (isFav(m.team2) ? '★ ' : '☆ ') + m.team2 + '</button>';
-    }
-    html += '</div>';
-    if (!inCalendar) {
-      html += '<button class="action-btn wide ' + (isWatched(m._id) ? 'on' : 'primary') + ' focusable" ' +
-              'data-action="watch" data-id="' + m._id + '">' +
-              (isWatched(m._id) ? '👁 Remove from Watch' : '👁 Add to Watch') + '</button>';
-    }
-    body.innerHTML = html;
-  }
-
-  function teamBlock(name) {
-    return '<div class="vs-team"><div class="vs-flag">' + flag(name) + '</div><span>' + name + '</span></div>';
-  }
-  function detailRow(icon, label, value) {
-    return '<div class="card detail-row"><div class="list-item-icon">' + icon + '</div>' +
-      '<div class="list-item-content"><div class="list-item-meta">' + label + '</div>' +
-      '<div class="list-item-title">' + value + '</div></div></div>';
-  }
-
   // ==================== ACTIONS ====================
-  var lastMatchId = null;
-
   function handleAction(action, el) {
     switch (action) {
       case 'back': navigateBack(); break;
@@ -349,36 +294,22 @@
         break;
       }
       case 'match': {
-        var m = state.matches[parseInt(el.dataset.id, 10)];
-        if (m) {
-          lastMatchId = m._id;
-          navigateTo('match-detail');
-          renderMatchDetail(m);
-          focusFirst(screens['match-detail']);
+        // Tapping a match adds/removes it from the calendar, in place.
+        var id = parseInt(el.dataset.id, 10);
+        toggleSaved(id);
+        if (state.currentScreen === 'list-detail') {
+          renderListDetail(detailCtx.title, detailCtx.matches);
+        } else {
+          renderHome();
         }
+        refocusMatch(id);
         break;
       }
       case 'fav': {
-        // teams tab toggle — keep focus position
         var team = decodeURIComponent(el.dataset.team);
         toggleFav(team);
         renderHome();
         refocusTeam(team);
-        break;
-      }
-      case 'fav-team1':
-      case 'fav-team2': {
-        toggleFav(decodeURIComponent(el.dataset.team));
-        var cur = state.matches[lastMatchId];
-        if (cur) renderMatchDetail(cur);
-        focusAction(action);
-        break;
-      }
-      case 'watch': {
-        toggleWatch(parseInt(el.dataset.id, 10));
-        var cur2 = state.matches[lastMatchId];
-        if (cur2) renderMatchDetail(cur2);
-        focusAction('watch');
         break;
       }
     }
@@ -388,9 +319,9 @@
     var el = screens.home.querySelector('[data-team="' + encodeURIComponent(team) + '"]');
     if (el) el.focus();
   }
-  function focusAction(action) {
-    var el = screens['match-detail'].querySelector('[data-action="' + action + '"]');
-    if (el) el.focus(); else focusFirst(screens['match-detail']);
+  function refocusMatch(id) {
+    var el = screens[state.currentScreen].querySelector('[data-id="' + id + '"]');
+    if (el) el.focus();
   }
 
   function onScreenEnter(screenId) {

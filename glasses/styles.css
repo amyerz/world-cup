@@ -554,3 +554,17 @@ body {
 
 /* Tabs sized for 4 across */
 .tab-item { font-size: 13px; padding: 9px 6px; }
+
+/* Tap-to-add calendar star on match rows */
+.cal-star {
+  flex-shrink: 0;
+  width: 30px;
+  text-align: center;
+  font-size: 22px;
+  color: var(--text-muted);
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+.cal-star.on { color: var(--accent-warm); }
+.match-item:focus .cal-star { transform: scale(1.15); }
+.match-item:focus .cal-star:not(.on) { color: var(--text-secondary); }
+.cal-star.locked { opacity: 0.85; }
