@@ -30,8 +30,11 @@
     currentScreen: 'home',
     screenHistory: [],
     activeTab: 'calendar',
+    bracketRound: 'Round of 32',
     matches: [],
     teams: [],
+    feedWinner: {},   // match num -> { into: destNum, round: destRound }
+    numToMatch: {},   // match num -> match
     data: { favorites: [], saved: [] },
   };
 
@@ -132,6 +135,7 @@
           if (String(m.group || '').indexOf('Group') === 0) { t[m.team1] = 1; t[m.team2] = 1; }
         });
         state.teams = Object.keys(t).sort();
+        buildBracket(matches);
         return matches;
       })
       .catch(function(e) { console.error('[Data] load', e); return []; });
@@ -160,11 +164,92 @@
     });
   }
 
-  // ==================== FORMAT ====================
-  function formatDate(iso) {
-    var p = iso.split('-');
-    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return months[parseInt(p[1], 10) - 1] + ' ' + parseInt(p[2], 10);
+  // ==================== BRACKET ====================
+  // Link each knockout match to where its winner advances, using the W<num>
+  // references in later matches' team slots.
+  function buildBracket(matches) {
+    var ko = matches.filter(function(m) { return KNOCKOUT_ROUNDS.indexOf(m.round) !== -1; });
+    // The Final and 3rd-place game ship without a num — synthesize stable ones.
+    ko.forEach(function(m) {
+      if (m.num == null) m.num = (m.round === 'Final') ? 103 : 104;
+      state.numToMatch[m.num] = m;
+    });
+    ko.forEach(function(m) {
+      [m.team1, m.team2].forEach(function(slot) {
+        var match = /^W(\d+)$/.exec(slot);
+        if (match) {
+          state.feedWinner[parseInt(match[1], 10)] = { into: m.num, round: m.round };
+        }
+      });
+    });
+  }
+
+  // Human-readable label for a knockout slot placeholder.
+  function slotLabel(slot) {
+    var m;
+    if ((m = /^W(\d+)$/.exec(slot))) return 'Winner M' + m[1];
+    if ((m = /^L(\d+)$/.exec(slot))) return 'Loser M' + m[1];
+    if ((m = /^1([A-L])$/.exec(slot))) return 'Winner Grp ' + m[1];
+    if ((m = /^2([A-L])$/.exec(slot))) return 'Runner-up ' + m[1];
+    if (/\//.test(slot)) return '3rd (' + slot.replace(/^3/, '') + ')';
+    return FLAGS[slot] ? flag(slot) + ' ' + slot : slot;
+  }
+
+  function bracketRoundsPresent() {
+    return KNOCKOUT_ROUNDS.filter(function(r) {
+      return r !== 'Match for third place' &&
+        state.matches.some(function(m) { return m.round === r; });
+    });
+  }
+  function roundShort(r) {
+    return { 'Round of 32':'R32','Round of 16':'R16','Quarter-final':'QF',
+             'Semi-final':'SF','Final':'Final','Match for third place':'3rd' }[r] || r;
+  }
+
+  // ==================== FORMAT (locale + local timezone) ====================
+  // Use the glasses' UI language; fall back to en. All times render in the
+  // device's local timezone via Intl, regardless of the venue's UTC offset.
+  var LANG = (typeof navigator !== 'undefined' && (navigator.language || (navigator.languages || [])[0])) || 'en';
+  var fmtDateInt = new Intl.DateTimeFormat(LANG, { month: 'short', day: 'numeric' });
+  var fmtTimeInt = new Intl.DateTimeFormat(LANG, { hour: 'numeric', minute: '2-digit' });
+  var fmtWeekdayInt = new Intl.DateTimeFormat(LANG, { weekday: 'short' });
+  var relInt = (typeof Intl.RelativeTimeFormat === 'function')
+    ? new Intl.RelativeTimeFormat(LANG, { numeric: 'auto' }) : null;
+
+  // Parse "2026-06-11" + "13:00 UTC-6" into an absolute instant (Date).
+  function kickoff(m) {
+    if (m._dt !== undefined) return m._dt;
+    var dt = null;
+    var dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(m.date || '');
+    var tm = /^(\d{1,2}):(\d{2})\s*UTC([+-]\d+)/.exec(m.time || '');
+    if (dm && tm) {
+      var offset = parseInt(tm[3], 10); // venue offset, e.g. -6
+      // UTC instant = venue-local wall clock minus the offset.
+      var ms = Date.UTC(+dm[1], +dm[2] - 1, +dm[3], +tm[1], +tm[2]) - offset * 3600 * 1000;
+      dt = new Date(ms);
+    } else if (dm) {
+      dt = new Date(Date.UTC(+dm[1], +dm[2] - 1, +dm[3], 12, 0)); // date only
+    }
+    m._dt = dt;
+    return dt;
+  }
+  function fmtDate(m) {
+    var dt = kickoff(m);
+    return dt ? fmtDateInt.format(dt) : (m.date || '');
+  }
+  function fmtTime(m) {
+    var dt = kickoff(m);
+    return (dt && /UTC/.test(m.time || '')) ? fmtTimeInt.format(dt) : (m.time || 'TBD');
+  }
+  // If kickoff is within the next 24h, return a localized "in 2 hr"; else null.
+  function relativeTime(m) {
+    var dt = kickoff(m);
+    if (!dt || !relInt || !/UTC/.test(m.time || '')) return null;
+    var diff = dt.getTime() - Date.now();
+    if (diff < 0 || diff > 24 * 3600 * 1000) return null;
+    var hrs = Math.floor(diff / 3600000);
+    return hrs >= 1 ? relInt.format(hrs, 'hour')
+                    : relInt.format(Math.max(1, Math.round(diff / 60000)), 'minute');
   }
   function flag(name) { return FLAGS[name] || '⚽'; }
   function teamLabel(name) {
@@ -181,12 +266,13 @@
     // Star = in calendar. Locked (no toggle hint) when it's there via a favorite team.
     var star = '<span class="cal-star' + (added ? ' on' : '') + (byFav ? ' locked' : '') + '">' +
                (added ? '★' : '☆') + '</span>';
+    var rel = relativeTime(m);
+    var when = rel
+      ? '<div class="match-date">' + fmtDate(m) + '</div><div class="match-soon">' + rel + '</div>'
+      : '<div class="match-date">' + fmtDate(m) + '</div><div class="match-time">' + fmtTime(m) + '</div>';
     return '' +
       '<button class="list-item match-item focusable" data-action="match" data-id="' + m._id + '">' +
-        '<div class="match-when">' +
-          '<div class="match-date">' + formatDate(m.date) + '</div>' +
-          '<div class="match-time">' + (m.time || '') + '</div>' +
-        '</div>' +
+        '<div class="match-when">' + when + '</div>' +
         '<div class="list-item-content">' +
           '<div class="match-teams">' + teamLabel(m.team1) + ' <span class="vs">v</span> ' + teamLabel(m.team2) + '</div>' +
           '<div class="list-item-meta">' + (m.ground || '') + '</div>' +
@@ -227,19 +313,13 @@
         html = cm.map(matchItemHTML).join('');
       }
     } else if (state.activeTab === 'browse') {
-      setStatus('All ' + state.matches.length + ' matches');
-      html =
-        '<div class="section-label">Groups</div>' +
-        groups().map(function(g) {
-          var n = state.matches.filter(function(m) { return m.group === g; }).length;
-          return navItemHTML('group', 'group', g, '⚽', g, n + ' matches');
-        }).join('') +
-        '<div class="section-label">Knockout</div>' +
-        knockoutRoundsPresent().map(function(r) {
-          var n = state.matches.filter(function(m) { return m.round === r; }).length;
-          var icon = r === 'Final' ? '🏆' : (r === 'Semi-final' ? '🥇' : '🎯');
-          return navItemHTML('round', 'round', encodeURIComponent(r), icon, r, n + ' matches');
-        }).join('');
+      setStatus(groups().length + ' groups');
+      html = groups().map(function(g) {
+        var n = state.matches.filter(function(m) { return m.group === g; }).length;
+        return navItemHTML('group', 'group', g, '⚽', g, n + ' matches');
+      }).join('');
+    } else if (state.activeTab === 'bracket') {
+      html = renderBracketHTML();
     } else if (state.activeTab === 'teams') {
       var favN = state.data.favorites.length;
       setStatus(favN ? favN + ' selected' : 'Select teams');
@@ -254,6 +334,49 @@
       }).join('');
     }
     c.innerHTML = html;
+  }
+
+  // ==================== RENDER: bracket ====================
+  function renderBracketHTML() {
+    var rounds = bracketRoundsPresent();
+    if (rounds.indexOf(state.bracketRound) === -1) state.bracketRound = rounds[0];
+
+    // The Final view also carries the third-place playoff (it has no round of its own here).
+    var rounds2 = state.bracketRound === 'Final'
+      ? ['Final', 'Match for third place'] : [state.bracketRound];
+    var matches = state.matches
+      .filter(function(m) { return rounds2.indexOf(m.round) !== -1; })
+      .sort(function(a, b) { return (a.num || 0) - (b.num || 0); });
+    setStatus(matches.length + ' ties');
+
+    var chips = '<div class="bracket-rounds">' + rounds.map(function(r) {
+      return '<button class="round-chip focusable' + (r === state.bracketRound ? ' active' : '') +
+        '" data-action="bracket-round" data-round="' + encodeURIComponent(r) + '">' +
+        roundShort(r) + '</button>';
+    }).join('') + '</div>';
+
+    var cards = matches.map(bracketCardHTML).join('');
+    return chips + cards;
+  }
+
+  function bracketCardHTML(m) {
+    var added = inCalendar(m);
+    var feed = state.feedWinner[m.num];
+    var advance = feed ? '<span class="bk-advance">→ ' + roundShort(feed.round) + '</span>'
+      : (m.round === 'Final' ? '<span class="bk-advance champ">🏆 Champion</span>' : '');
+    var when = relativeTime(m) || (fmtDate(m) + ' · ' + fmtTime(m));
+    return '' +
+      '<button class="bracket-card focusable" data-action="match" data-id="' + m._id + '">' +
+        '<div class="bk-head">' +
+          '<span class="bk-num">M' + (m.num || '') + '</span>' +
+          '<span class="bk-when">' + when + '</span>' +
+          '<span class="cal-star' + (added ? ' on' : '') + '">' + (added ? '★' : '☆') + '</span>' +
+        '</div>' +
+        '<div class="bk-slot">' + slotLabel(m.team1) + '</div>' +
+        '<div class="bk-vs">vs</div>' +
+        '<div class="bk-slot">' + slotLabel(m.team2) + '</div>' +
+        '<div class="bk-foot"><span class="bk-venue">' + (m.ground || '') + '</span>' + advance + '</div>' +
+      '</button>';
   }
 
   // ==================== RENDER: list detail (group / round) ====================
@@ -286,11 +409,11 @@
         focusFirst(screens['list-detail']);
         break;
       }
-      case 'round': {
-        var r = decodeURIComponent(el.dataset.round);
-        navigateTo('list-detail');
-        renderListDetail(r, state.matches.filter(function(m) { return m.round === r; }));
-        focusFirst(screens['list-detail']);
+      case 'bracket-round': {
+        state.bracketRound = decodeURIComponent(el.dataset.round);
+        renderHome();
+        var chip = screens.home.querySelector('.round-chip.active');
+        if (chip) chip.focus();
         break;
       }
       case 'match': {

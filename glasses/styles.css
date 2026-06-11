@@ -568,3 +568,87 @@ body {
 .match-item:focus .cal-star { transform: scale(1.15); }
 .match-item:focus .cal-star:not(.on) { color: var(--text-secondary); }
 .cal-star.locked { opacity: 0.85; }
+
+/* Relative "in 2 hr" highlight on match rows */
+.match-soon {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent-warm);
+  margin-top: 2px;
+  text-transform: lowercase;
+}
+
+/* ==================== Bracket tab ==================== */
+.bracket-rounds {
+  display: flex;
+  gap: 6px;
+  padding: 2px 0 6px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-primary);
+  z-index: 2;
+}
+.round-chip {
+  flex: 1;
+  padding: 9px 4px;
+  background: var(--bg-tertiary);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-align: center;
+  min-height: 0;
+}
+.round-chip.active {
+  background: var(--accent-primary);
+  color: #fff;
+}
+.round-chip:focus { color: #fff; }
+
+.bracket-card {
+  display: block;
+  width: 100%;
+  flex: none;          /* don't let the scroll container shrink tall cards */
+  text-align: left;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  border: 2px solid transparent;
+  border-left: 3px solid var(--accent-primary);
+}
+.bracket-card:focus {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 20px var(--focus-glow);
+}
+.bk-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.bk-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+.bk-when { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.bk-head .cal-star { width: auto; font-size: 20px; }
+.bk-slot { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.bk-vs { font-size: 12px; color: var(--text-muted); margin: 2px 0; }
+.bk-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: 8px;
+}
+.bk-venue {
+  font-size: 12px; color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bk-advance {
+  font-size: 12px; font-weight: 700; color: var(--accent-primary);
+  flex-shrink: 0;
+}
+.bk-advance.champ { color: var(--accent-warm); }
+
+/* Never shrink items inside a scrollable list (caused tall bracket cards to overlap) */
+.list-container > * { flex-shrink: 0; }
