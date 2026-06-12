@@ -128,6 +128,7 @@ function WatchCalendar({ matches, t, lang, fav, region, reminders, onRemind, onW
   const defMonth = firstM ? new Date(firstM._kick).getMonth() : 5;
   const [month, setMonth] = useS(defMonth);
   const [sel, setSel] = useS(firstM ? (new Date(firstM._kick).getMonth()+"-"+new Date(firstM._kick).getDate()) : "5-11");
+  const [expDays, setExpDays] = useS({}); // portrait: which day cells are expanded past the 2-match cap
 
   const ws = weekStart(loc); // 0=Sunday, 1=Monday
   const first = new Date(year, month, 1);
@@ -176,7 +177,7 @@ function WatchCalendar({ matches, t, lang, fav, region, reminders, onRemind, onW
           if(d===null) return <div className="wcal-cell empty" key={i}></div>;
           const k = month+"-"+d; const dm = byKey[k]; const ev = evOf(month, d);
           const cell = (
-            <button className={"wcal-cell"+(dm?" has":"")+(ev?" event":"")+(k===sel?" sel":"")+(k===todayK?" today":"")}
+            <button className={"wcal-cell"+(dm?" has":"")+(ev?" event":"")+(k===sel?" sel":"")+(k===todayK?" today":"")+(expDays[k]?" expanded":"")}
               onClick={()=>(dm||ev)&&setSel(k)}>
               <span className="wcal-date">{d}</span>
               {ev && <span className="wcal-evico"><Icon name={ev.ic} style={{width:13,height:13}}/></span>}
@@ -187,6 +188,10 @@ function WatchCalendar({ matches, t, lang, fav, region, reminders, onRemind, onW
                     <span className="ev-time">{window.fmtTime(m._kick, lang)}</span>
                   </span>
                 ))}
+                {dm.length>2 && <span className="wcal-more" role="button"
+                  onClick={(e)=>{ e.stopPropagation(); setExpDays(p=>Object.assign({}, p, {[k]: !p[k]})); }}>
+                  {expDays[k] ? "−" : "+"+(dm.length-2)}
+                </span>}
               </span>}
             </button>
           );
@@ -198,7 +203,6 @@ function WatchCalendar({ matches, t, lang, fav, region, reminders, onRemind, onW
         <span><Icon name="star" style={{width:12,height:12,color:"var(--accent)"}}/>{t.openingCeremony}</span>
         <span><Icon name="trophy" style={{width:12,height:12,color:"var(--gold)"}}/>{t.finalDay}</span>
       </div>
-      {detail && selWeek===-1 && detail}
       {!detail && <div className="wcal-empty">{t.watchlistEmpty}</div>}
     </div>
   );
@@ -288,7 +292,7 @@ function YourTeamCard({ code, t, lang, onTeam, onWatch }){
           <span className="ytn-mid">
             {next.status==="live"
               ? <span className="ms-status live"><i></i>{next.hs}–{next.as}</span>
-              : <><b>{window.fmtTime(next._kick, lang)}</b><small>{dayLabel(next._kick, t, lang)}{relDays(next._kick, t) && <span className="rel"> · {relDays(next._kick, t)}</span>}</small></>}
+              : <><b>{window.fmtTime(next._kick, lang)}</b><small>{dayLabel(next._kick, t, lang)}{relDays(next._kick, t) && <span className="rel"><span className="rel-sep"> · </span>{relDays(next._kick, t)}</span>}</small></>}
           </span>
           <span className="ytn-team away">{window.teamName(next.away)}<Flag code={next.away} w={80}/></span>
         </div>

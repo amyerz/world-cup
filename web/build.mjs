@@ -300,6 +300,38 @@ async function emitHtmlCss() {
 .wcal-evt .ev-flags{ gap:4px; }
 .wcal-evt .ev-flags .flag{ width:15px; height:10px; }
 .wcal-evt .ev-time{ font-size:9.5px; }
+
+/* ===== Landscape: cap each day to 2 matches + a "+N" chip that expands inline ===== */
+.wcal-more{ display:none; }
+@media (orientation:landscape){
+  .wcal-cell{ height:auto; min-height:60px; }
+  .wcal-cell:not(.expanded) .wcal-evt:nth-child(n+3){ display:none; }
+  .wcal-cell.has .wcal-more{
+    display:inline-flex; align-items:center; justify-content:center; align-self:flex-start;
+    margin-top:2px; padding:1px 8px; border-radius:9px; font-size:11px; font-weight:700;
+    line-height:1.5; background:rgba(255,255,255,.14); color:var(--text); cursor:pointer;
+  }
+}
+
+/* ===== Landscape: compact "Upcoming matches" filter toggle, kept on one line ===== */
+@media (orientation:landscape){
+  .wl-head{ flex-wrap:nowrap; gap:10px; }
+  .wl-head h2{ white-space:nowrap; }
+  .wl-head .seg-toggle button{ padding:6px 14px; font-size:12.5px; }
+  /* "in X days" on its own centered line under the weekday+date in the favorite team card */
+  .ytn-mid .rel{ display:block; text-align:center; }
+  .ytn-mid .rel-sep{ display:none; }
+  /* Groups page: narrower standings/chance column, wider matches calendar */
+  .home-cols.grp-cols{ grid-template-columns:minmax(400px,0.85fr) minmax(520px,1.65fr); }
+  /* Standings fits the narrower column: fixed layout truncates only the longest names */
+  .grp-cols .tbl{ table-layout:fixed; }
+  .grp-cols .tbl td, .grp-cols .tbl th{ padding-left:4px; padding-right:4px; }
+  .grp-cols .tbl thead th:not(.lft){ width:30px; }
+}
+
+/* The team name is a flex item — needs min-width:0 to shrink and ellipsis. */
+.tbl .team-cell{ min-width:0; }
+.tbl .tn{ min-width:0; }
 `;
   await writeFile(join(OUT, "app.css"), styles + portalCss);
 
