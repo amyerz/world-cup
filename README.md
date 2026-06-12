@@ -157,8 +157,14 @@ Note that `build.mjs` copies it into the APK, so the key ships inside the app bu
 - [openfootball/worldcup.json](https://github.com/openfootball/worldcup.json) — public-domain data
 - [Android WebView security best practices](https://developer.android.com/develop/ui/views/layout/webapps/webview)
 
-## License
+## License & Disclaimer
 
-Application code in `android/` and `web/` is provided as-is for sideloading onto Meta Portal
-devices. World Cup data is sourced from openfootball (public domain). Flags via flagcdn; fonts
-(Barlow) via Google Fonts under the SIL Open Font License.
+Original application code in `android/` and `web/` is licensed under the [MIT License](LICENSE).
+Bundled and third-party assets retain their own terms: World Cup data from
+[openfootball](https://github.com/openfootball/worldcup.json) (public domain); country flags via
+flagcdn; fonts (Barlow) via Google Fonts under the SIL Open Font License.
+
+**Unofficial fan project.** This app is not affiliated with, endorsed, sponsored by, or otherwise
+connected to FIFA or any official governing body. "FIFA" and "World Cup" are trademarks of their
+respective owners and are used here only descriptively to refer to the tournament. The app is
+non-commercial and ships no official logos, emblems, mascots, or marks.
