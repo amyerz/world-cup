@@ -2,6 +2,7 @@ package com.erz.worldcup;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -37,18 +38,27 @@ public class MainActivity extends Activity {
         web = new WebView(this);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
-        s.setDomStorageEnabled(true);     // localStorage "wc26.v2" + API cache
-        s.setDatabaseEnabled(true);
+        s.setDomStorageEnabled(true);     // localStorage "wc26.*" cache
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setAllowFileAccess(true);       // file:///android_asset
-        s.setAllowContentAccess(true);
+        s.setAllowFileAccess(true);       // needed to load file:///android_asset/www/*
+        s.setAllowContentAccess(false);   // app uses no content:// providers
+        // Harden the file:// origin: the bundled page must not read other local files or
+        // reach across origins via XHR/fetch. (Both already default to false; set them
+        // explicitly so the security posture is intentional and review-visible.)
+        s.setAllowFileAccessFromFileURLs(false);
+        s.setAllowUniversalAccessFromFileURLs(false);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
 
-        // Surface page console.* to logcat under tag "WCWeb" for debugging.
+        // Mirror the page console to logcat ("WCWeb") only in debuggable builds, to avoid
+        // release log noise / leaking app internals on shipped devices.
+        final boolean debuggable =
+                (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
         web.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onConsoleMessage(ConsoleMessage m) {
-                Log.i("WCWeb", m.message() + " (" + m.sourceId() + ":" + m.lineNumber() + ")");
+                if (debuggable) {
+                    Log.i("WCWeb", m.message() + " (" + m.sourceId() + ":" + m.lineNumber() + ")");
+                }
                 return true;
             }
         });

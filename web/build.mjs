@@ -112,6 +112,13 @@ window.addEventListener("wc:data", function () { window.__wcRoot.render(<App />)
     jsx: "transform",            // classic runtime -> React.createElement / React.Fragment
     target: TARGET,
     legalComments: "none",
+    // Shrink parse/eval cost on the Portal WebView. Whitespace + syntax only — identifier
+    // mangling is OFF on purpose: this is ONE classic script whose concatenated files share
+    // top-level globals (TEAMS/MATCHES/GROUPS/SCORERS/App...) that live-data.js and the
+    // screens reference by name, so renaming top-level identifiers would break them.
+    minifyWhitespace: true,
+    minifySyntax: true,
+    minifyIdentifiers: false,
   });
   await writeFile(join(OUT, "app.bundle.js"), res.code);
   log(`  app.bundle.js  ${(res.code.length / 1024).toFixed(0)} KB`);
@@ -197,13 +204,25 @@ async function vendorFlags(codes, force) {
 // Bundle a copy of the public-domain 2026 schedule/results for offline use. The runtime
 // adapter prefers the live jsDelivr copy and falls back to this snapshot when offline.
 async function vendorOpenfootball(force) {
-  const dst = join(OUT, "data", "worldcup-2026.json");
-  if (!force && existsSync(dst)) { log("  data/worldcup-2026.json (cached)"); return; }
+  const dstJson = join(OUT, "data", "worldcup-2026.json");
+  const dstJs = join(OUT, "data", "worldcup-2026.js");
+  if (!force && existsSync(dstJs)) { log("  data/worldcup-2026.js (cached)"); return; }
   await mkdir(join(OUT, "data"), { recursive: true });
   try {
-    const buf = await fetchBuf("https://cdn.jsdelivr.net/gh/openfootball/worldcup.json@master/2026/worldcup.json");
-    await writeFile(dst, buf);
-    log("  data/worldcup-2026.json (openfootball snapshot)");
+    // Pinned to a commit for reproducible builds — this snapshot is only the OFFLINE
+    // FALLBACK. Runtime freshness comes from live-data.js fetching @master at launch.
+    const OF_PIN = "752a1137a20810ab37473fa9f87a9c2caf293785";
+    // Reuse an existing snapshot if present (lets a plain rebuild emit the .js offline),
+    // otherwise pull the pinned commit.
+    const buf = existsSync(dstJson)
+      ? await readFile(dstJson)
+      : await fetchBuf("https://cdn.jsdelivr.net/gh/openfootball/worldcup.json@" + OF_PIN + "/2026/worldcup.json");
+    await writeFile(dstJson, buf);
+    // Ship it as a <script> global too: a file:// page can't fetch() a sibling local file
+    // under the secure allowFileAccessFromFileURLs=false default, so the runtime loads the
+    // offline fallback from window.__WC_OF_SNAPSHOT instead of XHR'ing the .json.
+    await writeFile(dstJs, "window.__WC_OF_SNAPSHOT=" + buf.toString("utf8").trim() + ";\n");
+    log("  data/worldcup-2026.{json,js} (openfootball snapshot @" + OF_PIN.slice(0, 7) + ")");
   } catch (e) { console.warn("  openfootball snapshot failed (offline fallback will be missing):", e + ""); }
 }
 
@@ -289,6 +308,11 @@ async function emitHtmlCss() {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<!-- Safe baseline CSP: blocks plugin (<object>/<embed>) and <base>-tag injection vectors.
+     Kept minimal on purpose — a script-src/connect-src policy on a file:// origin can stop
+     the bundled scripts from loading on some WebView builds, so tighten that only after
+     verifying on a real Portal (or after moving assets behind WebViewAssetLoader / https). -->
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'none'" />
 <title>World Cup 2026</title>
 <link rel="stylesheet" href="fonts.css" />
 <link rel="stylesheet" href="app.css" />
@@ -299,6 +323,7 @@ async function emitHtmlCss() {
 <script src="vendor/react.production.min.js"></script>
 <script src="vendor/react-dom.production.min.js"></script>
 <script src="config.js"></script>
+<script src="data/worldcup-2026.js"></script>
 <script src="app.bundle.js"></script>
 </body>
 </html>

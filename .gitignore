@@ -11,6 +11,7 @@ android/app/src/main/assets/www/fonts.css
 android/app/src/main/assets/www/app.css
 android/app/src/main/assets/www/index.html
 android/app/src/main/assets/www/config.example.js
+android/app/src/main/assets/www/data/worldcup-2026.js
 
 # android build
 android/local.properties

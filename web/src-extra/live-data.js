@@ -214,7 +214,14 @@
       return true;
     }
 
-    function fetchLocal() { return fetch(LOCAL).then(function (r) { return r.json(); }).catch(function () { return null; }); }
+    function fetchLocal() {
+      // Offline fallback ships as a <script> global (window.__WC_OF_SNAPSHOT): a file:// page
+      // can't fetch() a sibling local file under the secure allowFileAccessFromFileURLs=false
+      // default, so reading the global is what actually works offline. fetch() stays as a
+      // last-ditch fallback for non-file hosting.
+      if (window.__WC_OF_SNAPSHOT) return Promise.resolve(window.__WC_OF_SNAPSHOT);
+      return fetch(LOCAL).then(function (r) { return r.json(); }).catch(function () { return null; });
+    }
 
     function load() {
       var cached = cGet("of");
