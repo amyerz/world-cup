@@ -249,6 +249,24 @@
       });
     }
     load();
+
+    // Auto-refresh so finished games update themselves — without polling all day. Only re-pulls
+    // when a match is in its "result window": past its expected finish but not yet marked
+    // finished in our data. Re-checks every ~15 min until the result posts, then that match
+    // drops out of the window. Pauses when the screen is off (document.hidden).
+    var EXPECT_FINISH = 120 * 60000;   // a match is assumed over ~2h after kickoff
+    var GIVE_UP = 6 * 3600e3;          // stop chasing a result 6h after kickoff (handles ET/PKs + posting lag)
+    var CHECK_EVERY = 15 * 60000;      // re-evaluate every 15 min
+    function resultPending(now) {
+      return (window.MATCHES || []).some(function (m) {
+        return m.status !== "finished" &&
+               now >= m._kick + EXPECT_FINISH && now <= m._kick + GIVE_UP;
+      });
+    }
+    setInterval(function () {
+      if (document.hidden || !resultPending(Date.now())) return;
+      fetchFirst(URLS, 0).then(function (j) { cSet("of", j); if (apply(j)) emit(); }).catch(function () {});
+    }, CHECK_EVERY);
   }
 
   // =========================================================================
