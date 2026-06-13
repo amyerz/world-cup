@@ -87,10 +87,16 @@
   //  OPENFOOTBALL adapter (default, free, no key)
   // =========================================================================
   function openfootball() {
-    var URL = CFG.openfootballUrl ||
-      "https://cdn.jsdelivr.net/gh/openfootball/worldcup.json@master/2026/worldcup.json";
+    // Source order = FRESHNESS. raw.githubusercontent serves openfootball's master with a
+    // ~5min CDN cache (and sends CORS), while jsDelivr caches the mutable @master ref for ~12h
+    // — so jsDelivr can lag real results by up to half a day. Try raw first, jsDelivr as a
+    // reliable fallback, then the bundled snapshot (offline).
+    var URLS = CFG.openfootballUrls || (CFG.openfootballUrl ? [CFG.openfootballUrl] : [
+      "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json",
+      "https://cdn.jsdelivr.net/gh/openfootball/worldcup.json@master/2026/worldcup.json"
+    ]);
     var LOCAL = "data/worldcup-2026.json";          // bundled offline snapshot
-    var TTL = (CFG.refreshHours || 3) * 3600e3;
+    var TTL = (CFG.refreshHours || 1) * 3600e3;     // re-pull cadence (results fill through the day)
 
     function parseKick(date, time) {
       var t = String(time || "00:00").trim();
@@ -223,12 +229,19 @@
       return fetch(LOCAL).then(function (r) { return r.json(); }).catch(function () { return null; });
     }
 
+    // Try each source in order; resolve with the first that returns a valid {matches} payload.
+    function fetchFirst(urls, i) {
+      if (i >= urls.length) return Promise.reject(new Error("all sources failed"));
+      return fetch(urls[i]).then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+        .then(function (j) { if (j && j.matches) return j; throw new Error("empty"); })
+        .catch(function () { return fetchFirst(urls, i + 1); });
+    }
+
     function load() {
       var cached = cGet("of");
       if (cached && (Date.now() - cached.t) < TTL) { if (apply(cached.data)) emit(); return; }
-      fetch(URL).then(function (r) { return r.json(); }).then(function (j) {
-        if (j && j.matches) { cSet("of", j); if (apply(j)) emit(); }
-        else throw new Error("empty");
+      fetchFirst(URLS, 0).then(function (j) {
+        cSet("of", j); if (apply(j)) emit();
       }).catch(function (e) {
         console.warn("[wc] openfootball fetch failed, using cache/snapshot:", e + "");
         if (cached && apply(cached.data)) { emit(); return; }
