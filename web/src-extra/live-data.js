@@ -147,13 +147,17 @@
         }
         if (!home || !away) return;                 // MATCHES/scorers: resolved teams only
         var kick = parseKick(m.date, m.time);
+        var now = Date.now();
+        // Infer "live" when kick has passed, no score yet, and within 130-min window (covers ET+PKs).
+        var liveInferred = !has && kick <= now && now < kick + 130 * 60000;
         var mm = {
           id: "of-" + (m.num != null ? m.num : (m.round + "-" + i)).toString().replace(/\s+/g, ""),
           home: home, away: away,
-          status: has ? "finished" : "upcoming",
+          status: has ? "finished" : (liveInferred ? "live" : "upcoming"),
           hs: has ? m.score.ft[0] : 0,
           as: has ? m.score.ft[1] : 0,
-          minute: 0, stream: "", _kick: kick
+          minute: liveInferred ? Math.floor((now - kick) / 60000) : 0,
+          stream: "", _kick: kick
         };
         if (rd) mm.round = rd; else mm.group = String(m.group || "").replace(/group\s*/i, "");
         if (mm.status === "upcoming") mm._target = kick;

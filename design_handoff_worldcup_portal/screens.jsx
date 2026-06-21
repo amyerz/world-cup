@@ -142,7 +142,7 @@ function WatchCalendar({ matches, t, lang, fav, region, reminders, onRemind, onW
   const evOf = (m,d)=> CEREMONIES.find(c=>c.m===m && c.d===d);
 
   const selParts = sel ? sel.split("-").map(Number) : null;
-  const selMatches = (sel && byKey[sel]) ? byKey[sel].slice().sort((a,b)=>a._kick-b._kick) : [];
+  const selMatches = (sel && byKey[sel]) ? byKey[sel].slice().sort((a,b)=>{ const o={live:0,upcoming:1,finished:2}; return (o[a.status]??1)-(o[b.status]??1)||a._kick-b._kick; }) : [];
   const selEv = selParts ? evOf(selParts[0], selParts[1]) : null;
   const selDateMs = selParts ? new Date(year, selParts[0], selParts[1]).getTime() : null;
   // Which week-row of the displayed month holds the selected day (-1 if it's in another month tab).
@@ -185,7 +185,7 @@ function WatchCalendar({ matches, t, lang, fav, region, reminders, onRemind, onW
               {ev && <span className="wcal-evico"><Icon name={ev.ic} style={{width:13,height:13}}/></span>}
               {dm && <span className="wcal-evts">
                 {dm.map((m,j)=>(
-                  <span className={"wcal-evt"+(m.status==="finished"||(m.status==="upcoming"&&m._kick<Date.now())?" past":"")} key={j}>
+                  <span className={"wcal-evt"+(m.status==="live"?" islive":m.status==="finished"||(m.status==="upcoming"&&m._kick<Date.now())?" past":"")} key={j}>
                     <span className="ev-flags"><Flag code={m.home} w={40}/><Flag code={m.away} w={40}/></span>
                     <span className="ev-time">{window.fmtTime(m._kick, lang)}</span>
                   </span>
@@ -214,11 +214,13 @@ function WatchCalendar({ matches, t, lang, fav, region, reminders, onRemind, onW
 function HomeScreen({ t, lang, live, liveVariant, fav, region, reminders, onRemind, onTeam, onWatch, onPick, onSeeAll }){
   const now = useNow();
   const upcoming = window.MATCHES.filter(m=>m.status==="upcoming").sort((a,b)=>a._kick-b._kick);
-  const allNonLive = window.MATCHES.filter(m=>m.status!=="live").sort((a,b)=>a._kick-b._kick);
+  const calSort = (a,b)=>{ const o={live:0,upcoming:1,finished:2}; return (o[a.status]??1)-(o[b.status]??1)||a._kick-b._kick; };
+  const calAll = window.MATCHES.slice().sort(calSort);
   const watchlist = upcoming.filter(m=> reminders && reminders.indexOf(m.id)!==-1);
+  const liveFav = window.MATCHES.filter(m=>m.status==="live"&&(window.isF(fav,m.home)||window.isF(fav,m.away)));
   const [mode, setMode] = useS(watchlist.length > 0 ? "my" : "all");
   const imminent = watchlist.filter(m=> (m._kick-now)>0 && (m._kick-now)<=15*60000);
-  const calMatches = mode==="my" ? watchlist : allNonLive;
+  const calMatches = mode==="my" ? [...liveFav, ...watchlist] : calAll;
 
   return (
     <div className="content fade-in">
@@ -478,7 +480,11 @@ function TeamScreen({ code, t, lang, fav, setFav, region, reminders, onRemind, o
           </div>
           <div style={{marginTop:4}}><FavButton code={code} fav={fav} setFav={setFav} t={t} /></div>
         </div>
-        <div className="rankbadge"><div className="n">{team.rank}</div><div className="l">{t.fifaRank}</div></div>
+        <div className="rankbadge">
+          <div className="n">{team.rank}</div>
+          <div className="l">{t.fifaRank}</div>
+          {grp && onGroup && <button className="grp-badge-btn" onClick={()=>onGroup(grp.id)}>{t.group} {grp.id}<Icon name="chev" style={{width:11,height:11,transform:"rotate(-90deg)"}}/></button>}
+        </div>
       </div>
 
       {standing && <div className="panel" style={{marginBottom:22}}>
@@ -570,21 +576,32 @@ function BracketScreen({ t, fav, onTeam, onGroup }){
             </div>
           ))}
         </div>
-        {rounds.map(col=>(
-          <div className={"bk-col"+(col.key==="r32"?" wide":"")} key={col.key}>
-            <div className="rh">{col.title}</div>
-            {col.ties.map((m,i)=>{
-              const favTie = col.key==="r32" && (window.isF(fav,m.h) || window.isF(fav,m.a));
-              return (
-                <div className={"bk-tie"+(col.final?" bk-final":"")+(favTie?" fav-tie":"")} key={i}>
-                  {favTie && <div className="bk-favtag"><Icon name="star" style={{width:10,height:10}}/>{t.yourTeam}</div>}
-                  <BkSide code={m.h} sc={m.hs} label={m.hl} t={t} fav={fav} onTeam={onTeam}/>
-                  <BkSide code={m.a} sc={m.as} label={m.al} t={t} fav={fav} onTeam={onTeam}/>
-                </div>
-              );
-            })}
-          </div>
-        ))}
+        {rounds.map(col=>{
+          const pairs = [];
+          for(let i=0;i<col.ties.length;i+=2) pairs.push(col.ties.slice(i,i+2));
+          const renderTie = (m,k)=>{
+            const favTie = col.key==="r32" && (window.isF(fav,m.h)||window.isF(fav,m.a));
+            return (
+              <div className={"bk-tie"+(col.final?" bk-final":"")+(favTie?" fav-tie":"")} key={k}>
+                {favTie && <div className="bk-favtag"><Icon name="star" style={{width:10,height:10}}/>{t.yourTeam}</div>}
+                <BkSide code={m.h} sc={m.hs} label={m.hl} t={t} fav={fav} onTeam={onTeam}/>
+                <BkSide code={m.a} sc={m.as} label={m.al} t={t} fav={fav} onTeam={onTeam}/>
+              </div>
+            );
+          };
+          return (
+            <div className={"bk-col"+(col.key==="r32"?" wide":"")} key={col.key}>
+              <div className="rh">{col.title}</div>
+              {pairs.map((pair,pi)=>pair.length===2
+                ? <div className="bk-pair" key={pi}>
+                    <div className="bk-slot">{renderTie(pair[0],0)}</div>
+                    <div className="bk-slot">{renderTie(pair[1],1)}</div>
+                  </div>
+                : <div className="bk-slot" key={pi}>{renderTie(pair[0],0)}</div>
+              )}
+            </div>
+          );
+        })}
         <div className="bk-col">
           <div className="rh">{t.champion}</div>
           <div className="champ"><Icon name="trophy" className="trophy"/><div className="ct">{t.champion}</div></div>
@@ -606,7 +623,7 @@ function slotTeam(label) {
 function BkSide({ code, sc, label, t, fav, onTeam }){
   const provisional = !code && slotTeam(label);
   const displayCode = code || provisional || null;
-  if(!displayCode) return <div className="bk-side tbd">{label || (t.advance+"…")}</div>;
+  if(!displayCode) return <div className="bk-side tbd">{label || "TBD"}</div>;
   return (
     <div className={"bk-side"+(provisional?" provisional":"")+(window.isF(fav,displayCode)?" fav":"")} onClick={()=>onTeam(displayCode)}>
       <Flag code={displayCode} w={40}/>
@@ -619,15 +636,10 @@ function BkSide({ code, sc, label, t, fav, onTeam }){
 
 /* ---------- MATCHES ---------- */
 function MatchesScreen({ t, lang, fav, region, liveVariant, reminders, onRemind, onWatch, onTeam }){
-  const live = window.MATCHES.filter(m=>m.status==="live");
-  const allMatches = window.MATCHES.filter(m=>m.status!=="live").sort((a,b)=>a._kick-b._kick);
+  const allMatches = window.MATCHES.slice().sort((a,b)=>{ const o={live:0,upcoming:1,finished:2}; return (o[a.status]??1)-(o[b.status]??1)||a._kick-b._kick; });
   return (
     <div className="content fade-in">
       <div className="sec-head"><h2>{t.nav_matches}</h2><span className="tag"><Icon name="clock" style={{width:13,height:13,verticalAlign:"-2px"}}/> {t.localNote} · {window.tzName()}</span></div>
-      {live.length>0 && <div style={{marginBottom:24}}>
-        <div className="match-day live-day">{t.liveNow}</div>
-        {live.map(m=> <LiveMatch key={m.id} match={m} t={t} variant={liveVariant==="mini"?"hero":liveVariant} broadcaster={window.primaryBroadcaster(region)} onWatch={()=>onWatch(m)} />)}
-      </div>}
       <WatchCalendar matches={allMatches} t={t} lang={lang} fav={fav} region={region} reminders={reminders} onRemind={onRemind} onWatch={onWatch} onTeam={onTeam} />
     </div>
   );

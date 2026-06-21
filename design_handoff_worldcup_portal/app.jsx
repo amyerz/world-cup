@@ -3,7 +3,14 @@ const { useState: uss, useEffect: ue } = React;
 
 // Absolute kickoff (ms) for every match → renders in viewer's LOCAL timezone.
 const LOAD_NOW = Date.now();
-window.MATCHES.forEach(m=>{ m._kick = LOAD_NOW + (m.offsetMin||0)*60000; if(m.status==="upcoming") m._target = m._kick; });
+window.MATCHES.forEach(m=>{
+  m._kick = LOAD_NOW + (m.offsetMin||0)*60000;
+  if(m.status==="upcoming") m._target = m._kick;
+  // Infer live from kick time when the data source hasn't caught up yet (covers ET+PKs).
+  if(m.status==="upcoming" && m._kick<=LOAD_NOW && LOAD_NOW<m._kick+130*60000){
+    m.status="live"; m.minute=Math.floor((LOAD_NOW-m._kick)/60000);
+  }
+});
 
 const LS = "wc26.v2";
 const loadLS = ()=>{ try{ return JSON.parse(localStorage.getItem(LS))||{}; }catch(e){ return {}; } };
