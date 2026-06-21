@@ -1,3 +1,6 @@
+# local Claude working instructions — not for the public repo
+CLAUDE.md
+
 # secrets — never commit the API key
 web/config.js
 **/assets/www/config.js

@@ -1,11 +1,12 @@
-# World Cup 2026 — Meta Portal App
+# Kickoff 2026 — Meta Portal App
 
-A sideloadable Android app for **Meta Portal touch and TV devices** (Portal, Portal+, Portal
-Mini, Portal Go, Portal TV) that presents the World Cup 2026 dashboard across four tabs —
-**Home** (schedule + live results), **Groups** (standings + FIFA ranking), **Bracket** (the
-knockout tree), and **Countries** (team browser) — in a full-screen WebView. All assets
-(React, fonts, flags, a results snapshot) are bundled locally, so the app launches and works
-**fully offline**; when online it refreshes real 2026 data from a free, public-domain source.
+**Kickoff 2026** is a sideloadable Android app for **Meta Portal touch and TV devices** (Portal,
+Portal+, Portal Mini, Portal Go, Portal TV) — an unofficial companion for the **2026 World Cup**
+that helps casual fans follow their team and not miss a match. Four tabs — **Home** (schedule +
+live results), **Groups** (standings + FIFA ranking), **Bracket** (the knockout tree), and
+**Countries** (team browser) — in a full-screen WebView. All assets (React, fonts, flags, a
+results snapshot) are bundled locally, so the app launches and works **fully offline**; when
+online it refreshes real 2026 data from a free, public-domain source.
 
 The Portal app is the `android/` Gradle project plus the `web/` build pipeline that generates
 its bundled web assets. (`design_handoff_worldcup_portal/` is the upstream design source and is

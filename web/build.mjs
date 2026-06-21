@@ -209,20 +209,15 @@ async function vendorOpenfootball(force) {
   if (!force && existsSync(dstJs)) { log("  data/worldcup-2026.js (cached)"); return; }
   await mkdir(join(OUT, "data"), { recursive: true });
   try {
-    // Pinned to a commit for reproducible builds — this snapshot is only the OFFLINE
-    // FALLBACK. Runtime freshness comes from live-data.js fetching @master at launch.
-    const OF_PIN = "752a1137a20810ab37473fa9f87a9c2caf293785";
-    // Reuse an existing snapshot if present (lets a plain rebuild emit the .js offline),
-    // otherwise pull the pinned commit.
-    const buf = existsSync(dstJson)
-      ? await readFile(dstJson)
-      : await fetchBuf("https://cdn.jsdelivr.net/gh/openfootball/worldcup.json@" + OF_PIN + "/2026/worldcup.json");
+    // Always pull @master so every build bakes in the latest results.
+    const OF_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
+    const buf = await fetchBuf(OF_URL);
     await writeFile(dstJson, buf);
     // Ship it as a <script> global too: a file:// page can't fetch() a sibling local file
     // under the secure allowFileAccessFromFileURLs=false default, so the runtime loads the
     // offline fallback from window.__WC_OF_SNAPSHOT instead of XHR'ing the .json.
     await writeFile(dstJs, "window.__WC_OF_SNAPSHOT=" + buf.toString("utf8").trim() + ";\n");
-    log("  data/worldcup-2026.{json,js} (openfootball snapshot @" + OF_PIN.slice(0, 7) + ")");
+    log("  data/worldcup-2026.{json,js} (openfootball @master, " + JSON.parse(buf.toString()).matches.length + " matches)");
   } catch (e) { console.warn("  openfootball snapshot failed (offline fallback will be missing):", e + ""); }
 }
 
@@ -345,7 +340,7 @@ async function emitHtmlCss() {
      the bundled scripts from loading on some WebView builds, so tighten that only after
      verifying on a real Portal (or after moving assets behind WebViewAssetLoader / https). -->
 <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'none'" />
-<title>World Cup 2026</title>
+<title>Kickoff 2026</title>
 <link rel="stylesheet" href="fonts.css" />
 <link rel="stylesheet" href="app.css" />
 </head>

@@ -633,9 +633,12 @@ img{display:block;}
 /* match card extras */
 .mcard.fav{border-color:var(--gold);box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 45%,transparent),var(--shadow);}
 .mcard.islive{border-left:4px solid var(--live);}
+.mcard.past{opacity:0.45;}
 .mcard-watch{align-self:center;margin-top:11px;background:var(--live);color:#fff;font-weight:700;font-size:13px;padding:9px 18px;border-radius:999px;}
 .mcard-watch:hover{filter:brightness(1.06);}
 .match-day.live-day{color:var(--live);}
+.wcal-evt.past{opacity:0.4;}
+.bk-side.provisional{opacity:0.65;}
 
 /* favorite highlights */
 .tbl tr.fav{background:color-mix(in srgb,var(--gold) 13%,transparent);}

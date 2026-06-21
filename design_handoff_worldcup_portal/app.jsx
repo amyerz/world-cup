@@ -83,14 +83,14 @@ function LangMenu({ lang, setLang }){
 function App(){
   const init = loadLS();
   const [tw, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [lang, setLangS] = uss(init.lang || "en");
+  const [lang, setLangS] = uss(init.lang || "zt");
   const [tab, setTabS] = uss(init.tab || "home");
   const [team, setTeam] = uss(null);
   const [groupTarget, setGroupTarget] = uss(null);
   const [watch, setWatch] = uss(null);
   const [favs, setFavsS] = uss(init.favs || (init.fav ? [init.fav] : []));
   const [reminders, setRemindersS] = uss(init.reminders || []);
-  const [region, setRegionS] = uss(init.region || window.LANG_REGION[init.lang||"en"] || "us-en");
+  const [region, setRegionS] = uss(init.region || window.LANG_REGION[init.lang||"zt"] || "global");
   const [picker, setPicker] = uss(false);
   const [navOpen, setNavOpenS] = uss(init.navOpen || false);
   const setNavOpen = (v)=>{ setNavOpenS(v); saveLS({ navOpen:v }); };

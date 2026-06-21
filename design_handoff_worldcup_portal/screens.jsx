@@ -55,10 +55,11 @@ function MatchCard({ m, t, lang, fav, region, reminders, onRemind, onWatch, onTe
   const minute = window.useLiveMinute(m.status==="live" ? m.minute : 0);
   const isFav = window.isF(fav, m.home) || window.isF(fav, m.away);
   const reminded = reminders && reminders.indexOf(m.id)!==-1;
+  const isPast = m.status==="finished" || (m.status==="upcoming" && m._kick < Date.now());
   const showScore = m.status!=="upcoming";
   const winH = m.status==="finished" && m.hs>m.as, winA = m.status==="finished" && m.as>m.hs;
   return (
-    <div className={"mcard"+(big?" big":"")+(isFav?" fav":"")+(m.status==="live"?" islive":"")}>
+    <div className={"mcard"+(big?" big":"")+(isFav?" fav":"")+(m.status==="live"?" islive":"")+(isPast?" past":"")}>
       <div className="mc-top">
         <span className="mc-when">
           {m.status==="upcoming" && <><b>{window.fmtTime(m._kick, lang)}</b>{!hideRel && relDays(m._kick, t) && <em>· {relDays(m._kick, t)}</em>}</>}
@@ -66,7 +67,7 @@ function MatchCard({ m, t, lang, fav, region, reminders, onRemind, onWatch, onTe
           {m.status==="finished" && <span className="mc-ft">{t.finished}</span>}
         </span>
         <span className="mc-grp">{m.round ? t[m.round] : t.group+" "+m.group}</span>
-        {m.status==="upcoming" && onRemind &&
+        {m.status==="upcoming" && !isPast && onRemind &&
           <button className={"mc-bell"+(reminded?" on":"")} title={reminded?t.reminderOn:t.remindMe} onClick={(e)=>{ e.stopPropagation(); onRemind(m); }}>
             <Icon name={reminded?"bellOn":"bell"} style={{width:14,height:14}}/>
           </button>}
@@ -83,7 +84,7 @@ function MatchCard({ m, t, lang, fav, region, reminders, onRemind, onWatch, onTe
           {showScore && <span className="mc-sc">{m.as}</span>}
         </button>
       </div>
-      {m.status==="upcoming" && <div className="mc-cd"><Icon name="clock" style={{width:12,height:12}}/> <CdText target={m._kick} t={t}/></div>}
+      {m.status==="upcoming" && !isPast && <div className="mc-cd"><Icon name="clock" style={{width:12,height:12}}/> <CdText target={m._kick} t={t}/></div>}
       {m.status==="live" && <button className="mcard-watch" onClick={()=>onWatch(m)}>● {t.watchLive} · {window.primaryBroadcaster(region)}</button>}
     </div>
   );
@@ -125,9 +126,10 @@ function WatchCalendar({ matches, t, lang, fav, region, reminders, onRemind, onW
   matches.forEach(m=>{ const d=new Date(m._kick); const k=d.getMonth()+"-"+d.getDate(); (byKey[k]=byKey[k]||[]).push(m); });
   const sorted = matches.slice().sort((a,b)=>a._kick-b._kick);
   const firstM = sorted[0];
-  const defMonth = firstM ? new Date(firstM._kick).getMonth() : 5;
+  const _initSel = (()=>{ const n=new Date(), tk=n.getMonth()+"-"+n.getDate(); if(byKey[tk]) return tk; const next=sorted.find(m=>m._kick>=Date.now()); if(next) return new Date(next._kick).getMonth()+"-"+new Date(next._kick).getDate(); if(firstM) return new Date(firstM._kick).getMonth()+"-"+new Date(firstM._kick).getDate(); return tk; })();
+  const defMonth = _initSel ? Number(_initSel.split("-")[0]) : (firstM ? new Date(firstM._kick).getMonth() : 5);
   const [month, setMonth] = useS(defMonth);
-  const [sel, setSel] = useS(firstM ? (new Date(firstM._kick).getMonth()+"-"+new Date(firstM._kick).getDate()) : "5-11");
+  const [sel, setSel] = useS(_initSel);
   const [expDays, setExpDays] = useS({}); // portrait: which day cells are expanded past the 2-match cap
 
   const ws = weekStart(loc); // 0=Sunday, 1=Monday
@@ -183,7 +185,7 @@ function WatchCalendar({ matches, t, lang, fav, region, reminders, onRemind, onW
               {ev && <span className="wcal-evico"><Icon name={ev.ic} style={{width:13,height:13}}/></span>}
               {dm && <span className="wcal-evts">
                 {dm.map((m,j)=>(
-                  <span className="wcal-evt" key={j}>
+                  <span className={"wcal-evt"+(m.status==="finished"||(m.status==="upcoming"&&m._kick<Date.now())?" past":"")} key={j}>
                     <span className="ev-flags"><Flag code={m.home} w={40}/><Flag code={m.away} w={40}/></span>
                     <span className="ev-time">{window.fmtTime(m._kick, lang)}</span>
                   </span>
@@ -590,13 +592,25 @@ function BracketScreen({ t, fav, onTeam, onGroup }){
     </div>
   );
 }
+// Resolve a slot label like "1st A" / "2nd B" to the team currently in that position.
+function slotTeam(label) {
+  if (!label || !window.GROUPS || !window.sortGroup) return null;
+  const m = label.match(/^([123])(?:st|nd|rd)\s+([A-L])$/);
+  if (!m) return null;
+  const g = window.GROUPS.find(g => g.id === m[2]);
+  if (!g) return null;
+  const sorted = window.sortGroup(g.teams);
+  return sorted[+m[1]-1]?.code ?? null;
+}
 function BkSide({ code, sc, label, t, fav, onTeam }){
-  if(!code) return <div className="bk-side tbd">{label || (t.advance+"…")}</div>;
+  const provisional = !code && slotTeam(label);
+  const displayCode = code || provisional || null;
+  if(!displayCode) return <div className="bk-side tbd">{label || (t.advance+"…")}</div>;
   return (
-    <div className={"bk-side"+(window.isF(fav,code)?" fav":"")} onClick={()=>onTeam(code)}>
-      <Flag code={code} w={40}/>
-      <span className="tn" style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{window.teamName(code)}</span>
-      {window.isF(fav,code) && <Icon name="star" className="favstar" style={{width:11,height:11}}/>}
+    <div className={"bk-side"+(provisional?" provisional":"")+(window.isF(fav,displayCode)?" fav":"")} onClick={()=>onTeam(displayCode)}>
+      <Flag code={displayCode} w={40}/>
+      <span className="tn" style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{window.teamName(displayCode)}</span>
+      {window.isF(fav,displayCode) && <Icon name="star" className="favstar" style={{width:11,height:11}}/>}
       {sc!=null && <span className="bs-sc">{sc}</span>}
     </div>
   );
@@ -628,8 +642,8 @@ function MatchesScreen({ t, lang, fav, region, liveVariant, reminders, onRemind,
 /* ---------- TEAM PICKER (modal) ---------- */
 function TeamPicker({ t, fav, setFav, onClose }){
   const [q, setQ] = useS("");
-  const all = Object.keys(window.TEAMS).map(code=>({code, name:window.TEAMS[code].name, rank:window.TEAMS[code].rank}))
-    .filter(x=> x.name.toLowerCase().includes(q.toLowerCase()))
+  const all = Object.keys(window.TEAMS).map(code=>({code, name:window.teamName(code), engName:window.TEAMS[code].name, rank:window.TEAMS[code].rank||999}))
+    .filter(x=> x.name.toLowerCase().includes(q.toLowerCase()) || x.engName.toLowerCase().includes(q.toLowerCase()))
     .sort((a,b)=> a.rank-b.rank);
   const count = (fav||[]).length;
   return (

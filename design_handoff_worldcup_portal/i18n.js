@@ -3,7 +3,7 @@
 window.I18N = {
   en: {
     _name: "English", _dir: "ltr",
-    appName: "World Cup", appYear: "2026", appHost: "USA · Canada · Mexico",
+    appName: "Kickoff", appYear: "2026", appHost: "USA · Canada · Mexico",
     nav_groups: "Groups", nav_bracket: "Bracket", nav_matches: "Matches", nav_countries: "Countries", nav_stadiums: "Stadiums",
     live: "LIVE", liveNow: "Live now", watchLive: "Watch live", streamOn: "Streaming on",
     kickoffIn: "Kick-off in", nextMatch: "Next match", today: "Today", upcoming: "Upcoming",
@@ -25,7 +25,7 @@ window.I18N = {
   },
   de: {
     _name: "Deutsch", _dir: "ltr",
-    appName: "Weltmeisterschaft", appYear: "2026", appHost: "USA · Kanada · Mexiko",
+    appName: "Kickoff", appYear: "2026", appHost: "USA · Kanada · Mexiko",
     nav_groups: "Gruppen", nav_bracket: "K.-o.-Runde", nav_matches: "Spiele", nav_countries: "Länder", nav_stadiums: "Stadien",
     live: "LIVE", liveNow: "Jetzt live", watchLive: "Live ansehen", streamOn: "Streaming bei",
     kickoffIn: "Anpfiff in", nextMatch: "Nächstes Spiel", today: "Heute", upcoming: "Bevorstehend",
@@ -47,7 +47,7 @@ window.I18N = {
   },
   es: {
     _name: "Español", _dir: "ltr",
-    appName: "Copa Mundial", appYear: "2026", appHost: "EE.UU. · Canadá · México",
+    appName: "Kickoff", appYear: "2026", appHost: "EE.UU. · Canadá · México",
     nav_groups: "Grupos", nav_bracket: "Eliminatorias", nav_matches: "Partidos", nav_countries: "Países", nav_stadiums: "Estadios",
     live: "EN VIVO", liveNow: "En vivo", watchLive: "Ver en vivo", streamOn: "Transmitido en",
     kickoffIn: "Comienza en", nextMatch: "Próximo partido", today: "Hoy", upcoming: "Próximos",
@@ -69,7 +69,7 @@ window.I18N = {
   },
   fr: {
     _name: "Français", _dir: "ltr",
-    appName: "Coupe du Monde", appYear: "2026", appHost: "États-Unis · Canada · Mexique",
+    appName: "Kickoff", appYear: "2026", appHost: "États-Unis · Canada · Mexique",
     nav_groups: "Groupes", nav_bracket: "Phase finale", nav_matches: "Matchs", nav_countries: "Pays", nav_stadiums: "Stades",
     live: "EN DIRECT", liveNow: "En direct", watchLive: "Regarder en direct", streamOn: "Diffusé sur",
     kickoffIn: "Coup d'envoi dans", nextMatch: "Prochain match", today: "Aujourd'hui", upcoming: "À venir",
@@ -91,7 +91,7 @@ window.I18N = {
   },
   pt: {
     _name: "Português", _dir: "ltr",
-    appName: "Copa do Mundo", appYear: "2026", appHost: "EUA · Canadá · México",
+    appName: "Kickoff", appYear: "2026", appHost: "EUA · Canadá · México",
     nav_groups: "Grupos", nav_bracket: "Mata-mata", nav_matches: "Jogos", nav_countries: "Países", nav_stadiums: "Estádios",
     live: "AO VIVO", liveNow: "Ao vivo", watchLive: "Assistir ao vivo", streamOn: "Transmissão em",
     kickoffIn: "Começa em", nextMatch: "Próximo jogo", today: "Hoje", upcoming: "Próximos",
@@ -113,7 +113,7 @@ window.I18N = {
   },
   ja: {
     _name: "日本語", _dir: "ltr",
-    appName: "ワールドカップ", appYear: "2026", appHost: "アメリカ・カナダ・メキシコ",
+    appName: "Kickoff", appYear: "2026", appHost: "アメリカ・カナダ・メキシコ",
     nav_groups: "グループ", nav_bracket: "トーナメント", nav_matches: "試合", nav_countries: "出場国", nav_stadiums: "会場",
     live: "ライブ", liveNow: "ライブ配信中", watchLive: "ライブ観戦", streamOn: "配信中",
     kickoffIn: "キックオフまで", nextMatch: "次の試合", today: "本日", upcoming: "今後の試合",
@@ -135,7 +135,7 @@ window.I18N = {
   },
   zh: {
     _name: "中文", _dir: "ltr",
-    appName: "世界杯", appYear: "2026", appHost: "美国 · 加拿大 · 墨西哥",
+    appName: "Kickoff", appYear: "2026", appHost: "美国 · 加拿大 · 墨西哥",
     nav_groups: "小组", nav_bracket: "淘汰赛", nav_matches: "赛程", nav_countries: "国家", nav_stadiums: "球场",
     live: "直播", liveNow: "正在直播", watchLive: "观看直播", streamOn: "直播平台",
     kickoffIn: "距开球", nextMatch: "下一场比赛", today: "今天", upcoming: "即将开始",
@@ -157,7 +157,7 @@ window.I18N = {
   },
   zt: {
     _name: "繁體中文", _dir: "ltr",
-    appName: "世界盃", appYear: "2026", appHost: "美國 · 加拿大 · 墨西哥",
+    appName: "Kickoff", appYear: "2026", appHost: "美國 · 加拿大 · 墨西哥",
     nav_groups: "小組", nav_bracket: "淘汰賽", nav_matches: "賽程", nav_countries: "國家", nav_stadiums: "球場",
     live: "直播", liveNow: "正在直播", watchLive: "觀看直播", streamOn: "直播平台",
     kickoffIn: "距開球", nextMatch: "下一場比賽", today: "今天", upcoming: "即將開始",
