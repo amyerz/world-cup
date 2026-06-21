@@ -83,14 +83,14 @@ function LangMenu({ lang, setLang }){
 function App(){
   const init = loadLS();
   const [tw, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [lang, setLangS] = uss(init.lang || "zt");
+  const [lang, setLangS] = uss(init.lang || "en");
   const [tab, setTabS] = uss(init.tab || "home");
   const [team, setTeam] = uss(null);
   const [groupTarget, setGroupTarget] = uss(null);
   const [watch, setWatch] = uss(null);
   const [favs, setFavsS] = uss(init.favs || (init.fav ? [init.fav] : []));
   const [reminders, setRemindersS] = uss(init.reminders || []);
-  const [region, setRegionS] = uss(init.region || window.LANG_REGION[init.lang||"zt"] || "global");
+  const [region, setRegionS] = uss(init.region || window.LANG_REGION[init.lang||"en"] || "us-en");
   const [picker, setPicker] = uss(false);
   const [navOpen, setNavOpenS] = uss(init.navOpen || false);
   const setNavOpen = (v)=>{ setNavOpenS(v); saveLS({ navOpen:v }); };
@@ -160,7 +160,7 @@ function App(){
   ];
 
   let screen;
-  if(team){ screen = <TeamScreen code={team} t={t} lang={lang} fav={favs} setFav={toggleFav} region={region} reminders={reminders} onRemind={onRemind} onWatch={onWatch} onTeam={openTeam} onBack={()=>setTeam(null)} />; }
+  if(team){ screen = <TeamScreen code={team} t={t} lang={lang} fav={favs} setFav={toggleFav} region={region} reminders={reminders} onRemind={onRemind} onWatch={onWatch} onTeam={openTeam} onBack={()=>setTeam(null)} onGroup={openGroup} />; }
   else if(tab==="home"){ screen = <HomeScreen t={t} lang={lang} live={live} liveVariant={tw.liveVariant} fav={favs} region={region} reminders={reminders} onRemind={onRemind} onTeam={openTeam} onWatch={onWatch} onPick={()=>setPicker(true)} onSeeAll={()=>setTab("matches")} />; }
   else if(tab==="countries"){ screen = <CountriesScreen t={t} lang={lang} fav={favs} onTeam={openTeam} />; }
   else if(tab==="groups"){ screen = <GroupsScreen t={t} lang={lang} fav={favs} initGroup={groupTarget} region={region} reminders={reminders} onRemind={onRemind} onTeam={openTeam} onWatch={onWatch} />; }

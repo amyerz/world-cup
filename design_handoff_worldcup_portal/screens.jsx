@@ -213,11 +213,12 @@ function WatchCalendar({ matches, t, lang, fav, region, reminders, onRemind, onW
 /* ---------- HOME (Portal focus) ---------- */
 function HomeScreen({ t, lang, live, liveVariant, fav, region, reminders, onRemind, onTeam, onWatch, onPick, onSeeAll }){
   const now = useNow();
-  const [mode, setMode] = useS("my");
   const upcoming = window.MATCHES.filter(m=>m.status==="upcoming").sort((a,b)=>a._kick-b._kick);
+  const allNonLive = window.MATCHES.filter(m=>m.status!=="live").sort((a,b)=>a._kick-b._kick);
   const watchlist = upcoming.filter(m=> reminders && reminders.indexOf(m.id)!==-1);
+  const [mode, setMode] = useS(watchlist.length > 0 ? "my" : "all");
   const imminent = watchlist.filter(m=> (m._kick-now)>0 && (m._kick-now)<=15*60000);
-  const calMatches = mode==="my" ? watchlist : upcoming;
+  const calMatches = mode==="my" ? watchlist : allNonLive;
 
   return (
     <div className="content fade-in">
@@ -443,7 +444,7 @@ function StatsScreen({ t, fav, onTeam }){
 }
 
 /* ---------- TEAM DETAIL ---------- */
-function TeamScreen({ code, t, lang, fav, setFav, region, reminders, onRemind, onWatch, onTeam, onBack }){
+function TeamScreen({ code, t, lang, fav, setFav, region, reminders, onRemind, onWatch, onTeam, onBack, onGroup }){
   const team = window.TEAMS[code];
   const roster = window.PLAYERS[code] || [];
   const grp = window.GROUPS.find(g=>g.teams.some(x=>x.code===code));
@@ -472,7 +473,7 @@ function TeamScreen({ code, t, lang, fav, setFav, region, reminders, onRemind, o
         <div className="th-txt">
           <h1>{window.teamName(code)}</h1>
           <div className="th-meta">
-            {grp && <span>{t.group} <b>{grp.id}</b>{posInGroup>0 && standing && standing.p>0 && <> · {t.positionIn} <b>{posInGroup}</b></>}</span>}
+            {grp && <span>{t.group} <b>{grp.id}</b>{posInGroup>0 && standing && standing.p>0 && <> · {t.positionIn} <b>{posInGroup}</b></>} {onGroup && <button className="grp-link" onClick={()=>onGroup(grp.id)}><Icon name="chev" style={{width:12,height:12,transform:"rotate(-90deg)"}}/></button>}</span>}
             {form.length>0 && <span className="form-pill">{form.map((f,i)=><i className={f} key={i}>{f}</i>)}</span>}
           </div>
           <div style={{marginTop:4}}><FavButton code={code} fav={fav} setFav={setFav} t={t} /></div>
@@ -619,8 +620,7 @@ function BkSide({ code, sc, label, t, fav, onTeam }){
 /* ---------- MATCHES ---------- */
 function MatchesScreen({ t, lang, fav, region, liveVariant, reminders, onRemind, onWatch, onTeam }){
   const live = window.MATCHES.filter(m=>m.status==="live");
-  const finished = window.MATCHES.filter(m=>m.status==="finished").sort((a,b)=>b._kick-a._kick);
-  const upcoming = window.MATCHES.filter(m=>m.status==="upcoming").sort((a,b)=>a._kick-b._kick);
+  const allMatches = window.MATCHES.filter(m=>m.status!=="live").sort((a,b)=>a._kick-b._kick);
   return (
     <div className="content fade-in">
       <div className="sec-head"><h2>{t.nav_matches}</h2><span className="tag"><Icon name="clock" style={{width:13,height:13,verticalAlign:"-2px"}}/> {t.localNote} · {window.tzName()}</span></div>
@@ -628,13 +628,7 @@ function MatchesScreen({ t, lang, fav, region, liveVariant, reminders, onRemind,
         <div className="match-day live-day">{t.liveNow}</div>
         {live.map(m=> <LiveMatch key={m.id} match={m} t={t} variant={liveVariant==="mini"?"hero":liveVariant} broadcaster={window.primaryBroadcaster(region)} onWatch={()=>onWatch(m)} />)}
       </div>}
-      <WatchCalendar matches={upcoming} t={t} lang={lang} fav={fav} region={region} reminders={reminders} onRemind={onRemind} onWatch={onWatch} onTeam={onTeam} />
-      {finished.length>0 && <div>
-        <div className="match-day">{t.results}</div>
-        <div className="match-grid">
-          {finished.map(m=> <MatchCard key={m.id} m={m} t={t} lang={lang} fav={fav} region={region} reminders={reminders} onRemind={onRemind} onWatch={onWatch} onTeam={onTeam} />)}
-        </div>
-      </div>}
+      <WatchCalendar matches={allMatches} t={t} lang={lang} fav={fav} region={region} reminders={reminders} onRemind={onRemind} onWatch={onWatch} onTeam={onTeam} />
     </div>
   );
 }
