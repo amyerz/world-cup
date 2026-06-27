@@ -139,11 +139,16 @@
         var rd = roundOf(m.round || "");
         // Bracket keeps EVERY knockout tie, even with unresolved placeholders (h/a = null).
         if (rd && ko[rd]) {
-          ko[rd].push({
+          var entry = {
             h: home, a: away,
             hl: home ? null : koLabel(m.team1), al: away ? null : koLabel(m.team2), // slot labels until resolved
             hs: has ? m.score.ft[0] : null, as: has ? m.score.ft[1] : null, num: m.num || 0
-          });
+          };
+          // Track W{n} feeder references (used to reorder rounds for visual bracket alignment).
+          var wh = String(m.team1 || "").match(/^[WL](\d+)$/i), wa = String(m.team2 || "").match(/^[WL](\d+)$/i);
+          if (wh) entry._wh = parseInt(wh[1]);
+          if (wa) entry._wa = parseInt(wa[1]);
+          ko[rd].push(entry);
         }
         if (!home || !away) return;                 // MATCHES/scorers: resolved teams only
         var kick = parseKick(m.date, m.time);
@@ -175,6 +180,84 @@
         }
       });
       Object.keys(ko).forEach(function (k) { ko[k].sort(function (a, b) { return a.num - b.num; }); });
+
+      // Reorder ko.r32 and ko.r16 so consecutive pairs in each round feed the same game in
+      // the next round — matching the visual bracket tree (ESPN / FIFA layout).
+      // openfootball sorts rounds by match number which does NOT group matches by bracket half.
+      // Algorithm: walk QF (already correctly sorted by num) → derive R16 order → R32 order.
+      (function reorderBracket() {
+        function reorder(ties, higherRound) {
+          var byNum = {};
+          ties.forEach(function (t) { byNum[t.num] = t; });
+          var out = [], seen = {};
+          higherRound.forEach(function (h) {
+            [h._wh, h._wa].forEach(function (n) {
+              if (n && byNum[n] && !seen[n]) { out.push(byNum[n]); seen[n] = 1; }
+            });
+          });
+          ties.forEach(function (t) { if (!seen[t.num]) out.push(t); }); // safety: any not referenced
+          return out;
+        }
+        if (ko.r16.length) ko.r16 = reorder(ko.r16, ko.qf);
+        if (ko.r32.length) ko.r32 = reorder(ko.r32, ko.r16);
+      })();
+
+      // Resolve knockout slot names ("1A", "2B") to real team codes once the group stage
+      // is known. openfootball keeps the slot labels even after groups finish, so matches
+      // whose teams were null in the first pass are skipped from MATCHES — meaning they
+      // never appear as a team's "next game". Second pass fixes that.
+      var grpStats = {};
+      matches.forEach(function (m) {
+        if (!m.group) return;
+        var g = m.group;
+        if (!grpStats[g]) grpStats[g] = {};
+        [m.home, m.away].forEach(function (c) {
+          if (!grpStats[g][c]) grpStats[g][c] = { code: c, w: 0, d: 0, l: 0, gf: 0, ga: 0 };
+        });
+        if (m.status !== "finished") return;
+        var h = grpStats[g][m.home], a = grpStats[g][m.away];
+        h.gf += m.hs; h.ga += m.as; a.gf += m.as; a.ga += m.hs;
+        if (m.hs > m.as) { h.w++; a.l++; } else if (m.hs < m.as) { a.w++; h.l++; } else { h.d++; a.d++; }
+      });
+      var grpRanks = {};
+      Object.keys(grpStats).forEach(function (g) {
+        var teams = Object.keys(grpStats[g]).map(function (c) { return grpStats[g][c]; });
+        teams.sort(function (a, b) { return (b.w * 3 + b.d) - (a.w * 3 + a.d) || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf; });
+        grpRanks[g] = teams.map(function (t) { return t.code; });
+      });
+      function resolveSlot(tok) {
+        var m2 = String(tok || "").trim().match(/^([12])([A-L])$/);
+        return m2 ? (grpRanks[m2[2]] && grpRanks[m2[2]][parseInt(m2[1]) - 1]) || null : null;
+      }
+      var seenIds = {};
+      matches.forEach(function (m) { seenIds[m.id] = 1; });
+      src.forEach(function (m, i) {
+        var rd = roundOf(m.round || "");
+        if (!rd) return;
+        var home = codeOf(m.team1) || resolveSlot(m.team1);
+        var away = codeOf(m.team2) || resolveSlot(m.team2);
+        if (!home && !away) return; // need at least one team known to show the match
+        var id = "of-" + (m.num != null ? m.num : (m.round + "-" + i)).toString().replace(/\s+/g, "");
+        if (seenIds[id]) return;
+        var has = m.score && m.score.ft;
+        var kick = parseKick(m.date, m.time);
+        var now = Date.now();
+        var liveInferred = !has && kick <= now && now < kick + 130 * 60000;
+        var mm = {
+          id: id, home: home, away: away,
+          status: has ? "finished" : (liveInferred ? "live" : "upcoming"),
+          hs: has ? m.score.ft[0] : 0, as: has ? m.score.ft[1] : 0,
+          minute: liveInferred ? Math.floor((now - kick) / 60000) : 0,
+          stream: "", _kick: kick, round: rd
+        };
+        if (mm.status === "upcoming") mm._target = kick;
+        matches.push(mm);
+        seenIds[id] = 1;
+        // Also fill in the bracket entry so the visual bracket shows confirmed teams.
+        var entry = ko[rd] && ko[rd].find(function (x) { return x.num === (m.num || 0); });
+        if (entry) { entry.h = home; entry.a = away; }
+      });
+
       return { matches: matches, scorers: scorers, ko: ko };
     }
 

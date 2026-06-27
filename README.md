@@ -8,6 +8,13 @@ live results), **Groups** (standings + FIFA ranking), **Bracket** (the knockout 
 results snapshot) are bundled locally, so the app launches and works **fully offline**; when
 online it refreshes real 2026 data from a free, public-domain source.
 
+**Live knockout bracket.** As each group stage match is scored, 1st/2nd-place slots ("1A", "2B"
+etc.) are automatically resolved to real teams. The bracket tree is ordered to match the official
+FIFA/ESPN layout so pairs visually connect to the correct R16/QF/SF game. 3rd-place qualifier
+slots fill in once openfootball publishes the official FIFA assignments after all groups close.
+Upcoming knockout matches appear in the calendar and on your team's card as soon as your team's
+group is decided — even if the opponent is still TBD.
+
 The Portal app is the `android/` Gradle project plus the `web/` build pipeline that generates
 its bundled web assets. (`design_handoff_worldcup_portal/` is the upstream design source and is
 not part of the shipped app.)
@@ -114,12 +121,19 @@ The runtime reads `window.WC_CONFIG.source` (from `assets/www/config.js`). The a
 
 | `source` | Cost | What it gives | Notes |
 |---|---|---|---|
-| **`openfootball`** (default) | **Free, no key** | Real 2026 schedule, groups, results (daily); standings computed client-side | [openfootball/worldcup.json](https://github.com/openfootball/worldcup.json) via jsDelivr; the bundled `assets/www/data/worldcup-2026.json` snapshot is the offline fallback. No in-match live minute (updates daily). |
+| **`openfootball`** (default) | **Free, no key** | Real 2026 schedule, groups, results (daily); standings computed client-side | [openfootball/worldcup.json](https://github.com/openfootball/worldcup.json) via `raw.githubusercontent.com` (primary, ~5 min lag) then jsDelivr (fallback); the bundled `assets/www/data/worldcup-2026.json` snapshot is the offline fallback. No in-match live minute. |
 | `apifootball` | Paid (for 2026) | Same + real-time minute + assists | api-sports.io's free tier blocks season 2026. Set `source:"apifootball"` and a paid `apiKey`. Budget-guarded at 95 req/day; live poll pauses when the screen is hidden. |
 
-**The app needs nothing paid to run.** `refreshHours` (default 3) controls how often the
-openfootball JSON is re-pulled; last-known data is cached in `localStorage` and the bundled
-snapshot covers full offline use.
+**The app needs nothing paid to run.** `refreshHours` (default **1**) controls how often the
+openfootball JSON is re-pulled; while the app is open and a match is in its result window (kicked
+off but not yet scored), it re-fetches every 15 minutes until the result appears. Last-known data
+is cached in `localStorage` and the bundled snapshot covers full offline use.
+
+**Slot resolution.** During the knockout stage, openfootball uses group-position tokens ("1A",
+"2B") for unconfirmed R32 slots. The adapter resolves these automatically from the computed group
+standings as groups close, so the bracket and calendar fill in without any manual update. Slots
+that require the full 3rd-place ranking ("3A/B/C/D/F" etc.) remain TBD until openfootball
+publishes the official FIFA assignments after all 12 groups finish.
 
 **Hidden screens.** The build ships only screens with a free live source. The **Top Scorers /
 Stats** screen is built but disabled (`HIDDEN_TABS = ["stats"]` in `web/build.mjs`), so the

@@ -73,12 +73,12 @@ function MatchCard({ m, t, lang, fav, region, reminders, onRemind, onWatch, onTe
           </button>}
       </div>
       <div className="mc-rows">
-        <button className={"mc-row"+(winA?" dim":"")} onClick={()=>onTeam(m.home)}>
+        <button className={"mc-row"+(winA?" dim":"")} onClick={()=>m.home && onTeam(m.home)}>
           <Flag code={m.home} w={40}/>
           <span className="mc-name">{window.teamName(m.home)}{window.isF(fav,m.home) && <Icon name="star" className="favstar" style={{width:12,height:12}}/>}</span>
           {showScore && <span className="mc-sc">{m.hs}</span>}
         </button>
-        <button className={"mc-row"+(winH?" dim":"")} onClick={()=>onTeam(m.away)}>
+        <button className={"mc-row"+(winH?" dim":"")} onClick={()=>m.away && onTeam(m.away)}>
           <Flag code={m.away} w={40}/>
           <span className="mc-name">{window.teamName(m.away)}{window.isF(fav,m.away) && <Icon name="star" className="favstar" style={{width:12,height:12}}/>}</span>
           {showScore && <span className="mc-sc">{m.as}</span>}
@@ -292,7 +292,7 @@ function YourTeamCard({ code, t, lang, onTeam, onWatch }){
       </div>
       {next && <div className="yt-next">
         <span className="yt-next-lbl">{t.yourNext}</span>
-        <div className="yt-next-row" onClick={(e)=>{ e.stopPropagation(); next.status==="live" ? onWatch(next) : onTeam(next.home===code?next.away:next.home); }}>
+        <div className="yt-next-row" onClick={(e)=>{ e.stopPropagation(); const opp=next.home===code?next.away:next.home; next.status==="live" ? onWatch(next) : opp && onTeam(opp); }}>
           <span className="ytn-team"><Flag code={next.home} w={80}/>{window.teamName(next.home)}</span>
           <span className="ytn-mid">
             {next.status==="live"

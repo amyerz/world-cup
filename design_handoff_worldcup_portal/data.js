@@ -190,13 +190,28 @@ window.MATCHES = [
   {id:"k9", round:"final", home:"ar", away:"fr", stadium:"metlife", status:"upcoming", stream:"FOX Sports", offsetMin:54720}, // Jul 19
 ];
 
-// Knockout bracket — Round of 32 → Final (2026 format).
-// r32 carries the projected matchups (group stage still in progress, so no scores yet).
+// Knockout bracket — Round of 32 (real 2026 matchups, correct visual order).
+// Ordered so consecutive pairs feed the same R16 game (ESPN / FIFA bracket layout):
+// pair(0,1)→R16#89→QF#97, pair(2,3)→R16#90→QF#97, pair(4,5)→R16#93→QF#98,
+// pair(6,7)→R16#94→QF#98, pair(8,9)→R16#91→QF#99, pair(10,11)→R16#92→QF#99,
+// pair(12,13)→R16#95→QF#100, pair(14,15)→R16#96→QF#100.
 window.KO_R32 = [
-  {h:"mx", a:"ci"}, {h:"nl", a:"dz"}, {h:"ar", a:"eg"}, {h:"fr", a:"sn"},
-  {h:"br", a:"kr"}, {h:"es", a:"ir"}, {h:"gb-eng", a:"ng"}, {h:"pt", a:"sa"},
-  {h:"de", a:"hr"}, {h:"it", a:"ca"}, {h:"ma", a:"us"}, {h:"be", a:"tr"},
-  {h:"uy", a:"jp"}, {h:"co", a:"dk"}, {h:"no", a:"py"}, {h:"ch", a:"ec"},
+  {h:"de"},          // #74 Germany vs 3rd A/B/C/D/F (TBD)
+  {h:"fr"},          // #77 France vs 3rd C/D/F/G/H (TBD)
+  {h:"za", a:"ca"},  // #73 South Africa vs Canada
+  {h:"nl", a:"ma"},  // #75 Netherlands vs Morocco
+  {},                // #83 2nd K vs 2nd L (both TBD)
+  {h:"es"},          // #84 Spain vs 2nd J (TBD)
+  {h:"us"},          // #81 USA vs 3rd B/E/F/I/J (TBD)
+  {h:"be"},          // #82 Belgium vs 3rd A/E/H/I/J (TBD)
+  {h:"br", a:"jp"},  // #76 Brazil vs Japan
+  {h:"ci", a:"no"},  // #78 Ivory Coast vs Norway
+  {h:"mx"},          // #79 Mexico vs 3rd C/E/F/H/I (TBD)
+  {},                // #80 1st L vs 3rd E/H/I/J/K (both TBD)
+  {h:"ar", a:"cv"},  // #86 Argentina vs Cape Verde
+  {h:"au", a:"eg"},  // #88 Australia vs Egypt
+  {h:"ch"},          // #85 Switzerland vs 3rd E/F/G/I/J (TBD)
+  {},                // #87 1st K vs 3rd D/E/I/J/L (both TBD)
 ];
 
 // Golden Boot race.
@@ -223,6 +238,7 @@ window.SUBDIV_NAMES = {
 };
 const _dnCache = {};
 window.teamName = (code) => {
+  if (!code) return "TBD";
   const lang = window.__lang || "en";
   const sub = window.SUBDIV_NAMES[code];
   if(sub && sub[lang]) return sub[lang];
